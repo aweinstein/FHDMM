@@ -3,6 +3,7 @@ import pandas as pd
 from utils import softmax
 from scipy.optimize import minimize
 from matplotlib import cm
+import matplotlib.pyplot as plt
 
 class ML(object):
     def __init__(self, df):
@@ -10,25 +11,27 @@ class ML(object):
         and 'cue'.
         """
         self.n_actions = 4
-        self.cues = (0,)
+        self.cues = df['cue'].unique()
         self.df = df
 
-    def neg_log_likelihood(self, alphabeta):
+    def neg_log_likelihood(self, alphabetas):
         df = self.df
-        alpha, beta = alphabeta
+
+        alphas = alphabetas[0::2]
+        betas = alphabetas[1::2]
         df = self.df[self.df['cue'].isin(self.cues)]
         actions, rewards = df['action'].values, df['reward'].values
         cues = df['cue'].values
         prob_log = 0
         Q = dict([[cue, np.zeros(self.n_actions)] for cue in self.cues])
         for action, reward, cue in zip(actions, rewards, cues):
-            Q[cue][action] += alpha * (reward - Q[cue][action])
-            prob_log += np.log(softmax(Q[cue], beta)[action])
+            Q[cue][action] += alphas[cue] * (reward - Q[cue][action])
+            prob_log += np.log(softmax(Q[cue], betas[cue])[action])
         return -prob_log
 
     def ml_estimation(self):
-        bounds = ((0,1), (0,2))
-        r = minimize(self.neg_log_likelihood, [0.1,0.1],
+        bounds = ((0,1), (0,2)) * 3
+        r = minimize(self.neg_log_likelihood, [0.1,0.1,0.1,0.1,0.1,0.1],
                      method='L-BFGS-B',
                      bounds=bounds)
         return r
@@ -56,9 +59,9 @@ class ML(object):
         Alpha, Beta = np.meshgrid(alphas, betas)
         Z = np.zeros(len(Alpha) * len(Beta))
         for i, (a, b) in enumerate(product(alphas, betas)):
-            Z[i] = self.neg_log_likelihood((a, b))
+            Z[i] = self.neg_log_likelihood((a, b, 0, 0, 0, 0))
         Z.resize((len(alphas), len(betas)))
-        ax.contourf(Alpha, Beta, Z.T, 50, cmap=cm.jet)
+        ax.contourf(Alpha, Beta, Z.T, 50, cmap=cm.jet) #cmap=cm.viridis)
         if alpha is not None:
             ax.plot(alpha, beta, 'rs', ms=5)
         if alpha_hat is not None:
@@ -84,18 +87,19 @@ def card_cue_bandit_experiment():
     f = lambda x: {'reward':0, 'punishment':1, 'neutral':2}[x]
     df['cue'] = df['context'].map(f)
 
-    df = df[df['cue'] == 0] # For the moment just process cue 0. Must fix!
-
     f = lambda x: {23:0, 14:1, 8:2, 3:3}[x]
     df['action'] = df['action'].map(f)
     ml = ML(df)
     r = ml.ml_estimation()
     print(r)
 
-    # alpha_hat, beta_hat = r.x
-    # fig, ax = plt.subplots(1, 1)
-    # ml.plot_ml(ax, alpha, beta, alpha_hat, beta_hat)
-    # plt.show()
+    alpha, beta = 0.1, 0.5
+    alpha_hat, beta_hat = r.x[:2]
+    fig, ax = plt.subplots(1, 1)
+    ml.plot_ml(ax, alpha, beta, alpha_hat, beta_hat)
+    plt.tight_layout()
+    plt.savefig('likelihood.pdf')
+    plt.show()
     globals().update(locals())
 
 if __name__ == '__main__':
