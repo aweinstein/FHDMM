@@ -95,7 +95,10 @@ def run_single_softmax_experiment(beta, alpha):
 
 if __name__ == '__main__':
     np.random.seed(42)
-    run_single_softmax_experiment(0.5, 0.1)
+    beta = 0.5
+    alpha = 0.1
+    print('Running experiment with alpha={} and beta={}'.format(alpha, beta))
+    run_single_softmax_experiment(beta, alpha)
     import vis
     import matplotlib.pyplot as plt
     plt.close('all')

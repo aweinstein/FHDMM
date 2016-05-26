@@ -5,28 +5,13 @@ from scipy.optimize import minimize
 from matplotlib import cm
 
 class ML(object):
-    def __init__(self, df, n_actions, cues=None, bounds=None):
+    def __init__(self, df):
         """The DataFrame df must contain columns 'action' 'reward'.
         and 'cue'.
-
-        model can be 'sample_average' or 'constant_step_size'
         """
-        if type(cues) is not tuple:
-            raise TypeError('cues must be a tuple')
-        self.n_actions = n_actions
-        if cues is None:
-            if 'cue' in df.columns:
-                self.cues = (df['cue'].values[0],)
-                print('Using {:d} for the cue.'.format(self.cues[0]))
-            else:
-                self.cues = (0,)
-                df['cue'] = 0
-        else:
-            self.cues = cues
-        if type(cues) is int:
-            self.cues = (cues,)
+        self.n_actions = 4
+        self.cues = (0,)
         self.df = df
-        self.bounds = bounds
 
     def neg_log_likelihood(self, alphabeta):
         df = self.df
@@ -93,3 +78,25 @@ class ML(object):
         else:
             self.plot_ml(ax, None, None, None, None)
         ax.set_title(title)
+
+def card_cue_bandit_experiment():
+    df = pd.read_csv('softmax_experiment.csv')
+    f = lambda x: {'reward':0, 'punishment':1, 'neutral':2}[x]
+    df['cue'] = df['context'].map(f)
+
+    df = df[df['cue'] == 0] # For the moment just process cue 0. Must fix!
+
+    f = lambda x: {23:0, 14:1, 8:2, 3:3}[x]
+    df['action'] = df['action'].map(f)
+    ml = ML(df)
+    r = ml.ml_estimation()
+    print(r)
+
+    # alpha_hat, beta_hat = r.x
+    # fig, ax = plt.subplots(1, 1)
+    # ml.plot_ml(ax, alpha, beta, alpha_hat, beta_hat)
+    # plt.show()
+    globals().update(locals())
+
+if __name__ == '__main__':
+    card_cue_bandit_experiment()
