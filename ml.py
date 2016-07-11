@@ -11,7 +11,11 @@ class ML(object):
         and 'cue'.
         """
         self.n_actions = 4
-        self.cues = df['cue'].unique()
+        # self.cues = df['cue'].unique()
+        # self.n_cues = df['cue'].unique().size
+        self.cues = df['cue'].unique().tolist()
+        self.n_cues = len(self.cues)
+
         self.df = df
 
     def neg_log_likelihood(self, alphabetas):
@@ -24,14 +28,20 @@ class ML(object):
         cues = df['cue'].values
         prob_log = 0
         Q = dict([[cue, np.zeros(self.n_actions)] for cue in self.cues])
+        # for action, reward, cue in zip(actions, rewards, cues):
+        #     Q[cue][action] += alphas[cue] * (reward - Q[cue][action])
+        #     prob_log += np.log(softmax(Q[cue], betas[cue])[action])
         for action, reward, cue in zip(actions, rewards, cues):
-            Q[cue][action] += alphas[cue] * (reward - Q[cue][action])
-            prob_log += np.log(softmax(Q[cue], betas[cue])[action])
+            alpha = alphas[self.cues.index(cue)]
+            beta = betas[self.cues.index(cue)]
+            Q[cue][action] += alpha * (reward - Q[cue][action])
+            prob_log += np.log(softmax(Q[cue], beta)[action])
+
         return -prob_log
 
     def ml_estimation(self):
-        bounds = ((0,1), (0,2)) * 3
-        r = minimize(self.neg_log_likelihood, [0.1,0.1,0.1,0.1,0.1,0.1],
+        bounds = ((0,1), (0,2)) * self.n_cues
+        r = minimize(self.neg_log_likelihood, [0.1,0.1]*self.n_cues,
                      method='L-BFGS-B',
                      bounds=bounds)
         return r
@@ -102,5 +112,51 @@ def card_cue_bandit_experiment():
     plt.show()
     globals().update(locals())
 
+def fit_behavioral_data():
+    """Fit a model for all subjects. """
+    df = pd.read_pickle('data.pkl')
+    subjects = df.index.get_level_values('subject').unique()
+    data = np.empty((subjects.size, 10))
+    cues = (0, 1)
+    for i, subject in enumerate(subjects):
+        print('Fitting model for subject {}'.format(subject))
+        df_s = df.loc[subject]
+        for cue in cues:
+            ml = ML(df_s[df_s['cue']==cue])
+            r = ml.ml_estimation()
+            data[i,2*cue:(2*cue+2)] = r.x
+            data[i,2*cue+4:2*cue+6] = np.sqrt(np.diag(r.hess_inv.todense()))
+            data[i,cue+8] = r.fun
+
+    model = pd.DataFrame(data, pd.Index(subjects, name='subject'),
+                         ['alpha_0', 'beta_0', 'alpha_1', 'beta_1',
+                          'se_alpha_0', 'se_beta_0', 'se_alpha_1', 'se_beta_1',
+                          'NLL_0', 'NLL_1'])
+    return model
+
+
+def fit_single_subject(subject=4):
+    df = pd.read_pickle('data.pkl')
+    print('Fitting model for subject {}'.format(subject))
+    df_s = df.loc[subject]
+
+    cues = (0, 1, 2)
+    for cue in cues:
+        ml = ML(df_s[df_s['cue']==cue])
+        r = ml.ml_estimation()
+        H_inv = r.hess_inv.todense()
+        print('\t cue:{:d}'.format(cue))
+        print('\t\tr:\n\t\t\t{}\n'.format(r.x))
+        print('\tInverse of Hessian:\n{}\n'.format(H_inv))
+
+
+    globals().update(locals())
+
+
 if __name__ == '__main__':
-    card_cue_bandit_experiment()
+    #card_cue_bandit_experiment()
+    #fit_behavioral_data()
+    # np.set_printoptions(4)
+    # fit_single_subject(14)
+    model = fit_behavioral_data()
+    model.to_pickle('model.pkl')
