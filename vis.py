@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-plt.style.use('ggplot')
+plt.style.use('seaborn-paper')
 mpl.rcParams['lines.linewidth'] = 2
 
 def plot_simulation_run():
@@ -81,12 +81,6 @@ def plot_fit_data():
                  mfc='r', ecolor='r', alpha=0.2, label='')
     plt.scatter(alpha_good, beta_good, 100, 'r', marker='<', label='loose good fit')
     plt.scatter(alpha_poor, beta_poor, 100, 'r', marker='>', label='loose poor fit')
-
-    # plt.errorbar(alpha, beta, xerr=xerr, yerr=yerr, marker='^', ls='none',
-    #              ms=7, mfc='r', ecolor='r', alpha=0.2, label='')
-    # plt.plot(alpha, beta, label='bar', marker='^', ls='none', ms=7, mfc='r')
-    # plt.plot(alpha_masked, beta_masked,  marker='x', label='rab', ls='none', ms=5,
-    #              mfc='r')
 
     plt.legend()
 
