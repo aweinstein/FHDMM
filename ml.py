@@ -5,14 +5,14 @@ from scipy.optimize import minimize
 from matplotlib import cm
 import matplotlib.pyplot as plt
 
+import agent
+
 class ML(object):
     def __init__(self, df):
         """The DataFrame df must contain columns 'action' 'reward'.
         and 'cue'.
         """
         self.n_actions = 4
-        # self.cues = df['cue'].unique()
-        # self.n_cues = df['cue'].unique().size
         self.cues = df['cue'].unique().tolist()
         self.n_cues = len(self.cues)
 
@@ -28,9 +28,6 @@ class ML(object):
         cues = df['cue'].values
         prob_log = 0
         Q = dict([[cue, np.zeros(self.n_actions)] for cue in self.cues])
-        # for action, reward, cue in zip(actions, rewards, cues):
-        #     Q[cue][action] += alphas[cue] * (reward - Q[cue][action])
-        #     prob_log += np.log(softmax(Q[cue], betas[cue])[action])
         for action, reward, cue in zip(actions, rewards, cues):
             alpha = alphas[self.cues.index(cue)]
             beta = betas[self.cues.index(cue)]
@@ -54,10 +51,11 @@ class ML(object):
         return r
 
     def plot_ml(self, ax, alpha, beta, alpha_hat, beta_hat):
+
         from itertools import product
         n = 50
         alpha_max = 0.2
-        beta_max = 1.3
+        beta_max = 1.5
         if alpha is not None:
             alpha_max = alpha_max if alpha < alpha_max else 1.1 * alpha
             beta_max = beta_max if beta < beta_max else 1.1 * beta
@@ -71,13 +69,13 @@ class ML(object):
         for i, (a, b) in enumerate(product(alphas, betas)):
             Z[i] = self.neg_log_likelihood((a, b, 0, 0, 0, 0))
         Z.resize((len(alphas), len(betas)))
-        ax.contourf(Alpha, Beta, Z.T, 50, cmap=cm.jet) #cmap=cm.viridis)
+        ax.contourf(Alpha, Beta, Z.T, 50, cmap=cm.viridis)
         if alpha is not None:
-            ax.plot(alpha, beta, 'rs', ms=5)
+            ax.plot(alpha, beta, 'rs', ms=7)
         if alpha_hat is not None:
-            ax.plot(alpha_hat, beta_hat, 'r+', ms=10)
-        ax.set_xlabel(r'$\alpha$', fontsize=20)
-        ax.set_ylabel(r'$\beta$', fontsize=20)
+            ax.plot(alpha_hat, beta_hat, 'r^', ms=7)
+        ax.set_xlabel(r'$\alpha_c$', fontsize=20)
+        ax.set_ylabel(r'$\beta_c$', fontsize=20)
         return
 
     def plot_single_subject(self, ax, r, subject, cue):
@@ -92,8 +90,11 @@ class ML(object):
             self.plot_ml(ax, None, None, None, None)
         ax.set_title(title)
 
-def card_cue_bandit_experiment():
-    df = pd.read_csv('softmax_experiment.csv')
+def card_cue_bandit_experiment(alpha=0.1, beta=0.5):
+    np.random.seed(42)
+    print('Running experiment with alpha={} and beta={}'.format(alpha, beta))
+    df = agent.run_single_softmax_experiment(beta, alpha)
+
     f = lambda x: {'reward':0, 'punishment':1, 'neutral':2}[x]
     df['cue'] = df['context'].map(f)
 
@@ -103,7 +104,6 @@ def card_cue_bandit_experiment():
     r = ml.ml_estimation()
     print(r)
 
-    alpha, beta = 0.1, 0.5
     alpha_hat, beta_hat = r.x[:2]
     fig, ax = plt.subplots(1, 1)
     ml.plot_ml(ax, alpha, beta, alpha_hat, beta_hat)
@@ -153,10 +153,13 @@ def fit_single_subject(subject=4):
     globals().update(locals())
 
 
-if __name__ == '__main__':
+if __name__ == '__main__x':
     #card_cue_bandit_experiment()
     #fit_behavioral_data()
     # np.set_printoptions(4)
     # fit_single_subject(14)
     model = fit_behavioral_data()
     model.to_pickle('model.pkl')
+
+if __name__ == '__main__':
+    card_cue_bandit_experiment(alpha=0.1, beta=0.5)

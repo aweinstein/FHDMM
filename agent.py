@@ -88,10 +88,13 @@ def run_single_softmax_experiment(beta, alpha):
         ca.run()
     df = DataFrame(ca.log, columns=('context', 'action', 'reward', 'Q(c,23)',
                                     'Q(c,14)', 'Q(c,8)', 'Q(c,3)'))
-    fn = 'softmax_experiment.csv'
-    df.to_csv(fn, index=False)
-    print('Sequence written in', fn)
-    globals().update(locals())
+    # fn = 'softmax_experiment.csv'
+    # df.to_csv(fn, index=False)
+    # print('Sequence written in', fn)
+    # globals().update(locals())  #
+
+    return df
+
 
 if __name__ == '__main__':
     np.random.seed(42)
@@ -99,7 +102,7 @@ if __name__ == '__main__':
     alpha = 0.1
     print('Running experiment with alpha={} and beta={}'.format(alpha, beta))
     run_single_softmax_experiment(beta, alpha)
-    import vis
-    import matplotlib.pyplot as plt
-    plt.close('all')
-    vis.plot_simulation_run()
+    # import vis
+    # import matplotlib.pyplot as plt
+    # plt.close('all')
+    # vis.plot_simulation_run()
